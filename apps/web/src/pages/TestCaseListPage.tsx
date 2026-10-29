@@ -125,6 +125,9 @@ export function TestCaseListPage() {
         subtitle={data ? `${data.filteredTotal} of ${data.total} test cases` : undefined}
         actions={
           <>
+            <Link className="btn" to="/test-cases/generate">
+              Generate from requirement
+            </Link>
             <Link className="btn" to="/test-cases/import">
               Import CSV
             </Link>

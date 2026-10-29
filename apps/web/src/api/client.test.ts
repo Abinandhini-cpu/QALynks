@@ -93,3 +93,40 @@ describe('request handling', () => {
     expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe('/api/test-cases/TC-0002');
   });
 });
+
+describe('AI endpoints', () => {
+  it('reads AI status', async () => {
+    respond(200, { configured: false, provider: null, model: null, mock: false });
+    await expect(api.aiStatus()).resolves.toMatchObject({ configured: false });
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe('/api/ai/status');
+  });
+
+  it('posts the requirement for generation', async () => {
+    respond(200, { analysis: {}, testCases: [], provider: 'p', model: 'm' });
+    await api.generate('some requirement');
+    const [url, init] = vi.mocked(fetch).mock.calls[0]!;
+    expect(url).toBe('/api/ai/generate');
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({
+      requirement: 'some requirement',
+    });
+  });
+
+  it('posts approved cases to the bulk endpoint', async () => {
+    respond(201, { created: [{ index: 0, code: 'TC-0001' }] });
+    await api.createBulk([{ title: 't' } as never]);
+    const [url, init] = vi.mocked(fetch).mock.calls[0]!;
+    expect(url).toBe('/api/test-cases/bulk');
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({
+      testCases: [{ title: 't' }],
+    });
+  });
+
+  it('surfaces AI error codes and messages', async () => {
+    respond(429, { error: { code: 'AI_RATE_LIMITED', message: 'Too many generation requests.' } });
+    await expect(api.generate('x'.repeat(30))).rejects.toMatchObject({
+      status: 429,
+      code: 'AI_RATE_LIMITED',
+      message: 'Too many generation requests.',
+    });
+  });
+});

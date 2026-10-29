@@ -26,7 +26,9 @@ interface FormState {
   title: string;
   description: string;
   preconditions: string;
+  testData: string;
   expectedResult: string;
+  actualResult: string;
   priority: string;
   testType: string;
   module: string;
@@ -43,7 +45,9 @@ function toFormState(tc: TestCase | undefined, nextKey: () => number): FormState
     title: tc?.title ?? '',
     description: tc?.description ?? '',
     preconditions: tc?.preconditions ?? '',
+    testData: tc?.testData ?? '',
     expectedResult: tc?.expectedResult ?? '',
+    actualResult: tc?.actualResult ?? '',
     priority: tc?.priority ?? 'Medium',
     testType: tc?.testType ?? 'Functional',
     module: tc?.module ?? '',
@@ -74,8 +78,10 @@ function toInput(state: FormState): unknown {
     title: state.title,
     description: state.description,
     preconditions: state.preconditions,
+    testData: state.testData,
     steps: state.steps.map(({ action, expectedResult }) => ({ action, expectedResult })),
     expectedResult: state.expectedResult,
+    actualResult: state.actualResult,
     priority: state.priority,
     testType: state.testType,
     module: state.module,
@@ -338,7 +344,7 @@ function TestCaseForm({
   );
 
   const area = (
-    id: 'description' | 'preconditions' | 'expectedResult',
+    id: 'description' | 'preconditions' | 'testData' | 'expectedResult' | 'actualResult',
     label: string,
     rows = 3,
   ) => (
@@ -445,6 +451,7 @@ function TestCaseForm({
         {text('title', 'Title', { required: true, max: LIMITS.title })}
         {area('description', 'Description')}
         {area('preconditions', 'Preconditions', 2)}
+        {area('testData', 'Test data', 2)}
         <div className="field-row">
           {text('module', 'Module or component', {
             max: LIMITS.module,
@@ -591,6 +598,7 @@ function TestCaseForm({
           </ol>
         )}
         {area('expectedResult', 'Overall expected result')}
+        {area('actualResult', 'Actual result (recorded during execution)', 2)}
       </section>
 
       <section className="card form-section">

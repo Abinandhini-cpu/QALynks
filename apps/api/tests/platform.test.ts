@@ -38,9 +38,34 @@ describe('migrations', () => {
   it('apply once and are idempotent', () => {
     const db = openDatabase(':memory:');
     const dir = loadConfig().migrationsDir;
-    expect(runMigrations(db, dir)).toEqual(['001_init.sql']);
+    expect(runMigrations(db, dir)).toEqual(['001_init.sql', '002_test_data_actual_result.sql']);
     expect(runMigrations(db, dir)).toEqual([]);
     db.close();
+  });
+});
+
+describe('migration 002 on existing data', () => {
+  it('keeps existing test cases and defaults the new fields to blank', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qalynks-mig-'));
+    try {
+      fs.copyFileSync(
+        path.join(loadConfig().migrationsDir, '001_init.sql'),
+        path.join(dir, '001_init.sql'),
+      );
+      const db = openDatabase(':memory:');
+      runMigrations(db, dir);
+      db.prepare(
+        "INSERT INTO test_cases (code, title, title_normalized, priority, test_type, status, created_at, updated_at) VALUES ('TC-0001', 'Legacy', 'legacy', 'High', 'Smoke', 'Ready', 'n', 'n')",
+      ).run();
+      expect(runMigrations(db, loadConfig().migrationsDir)).toEqual([
+        '002_test_data_actual_result.sql',
+      ]);
+      const row = db.prepare('SELECT title, test_data, actual_result FROM test_cases').get();
+      expect(row).toEqual({ title: 'Legacy', test_data: '', actual_result: '' });
+      db.close();
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

@@ -25,7 +25,24 @@ export const SORT_FIELDS = [
 ] as const;
 export type SortField = (typeof SORT_FIELDS)[number];
 
+export const SCENARIO_TYPES = [
+  'positive',
+  'negative',
+  'boundary',
+  'edge',
+  'validation',
+  'business-rule',
+  'error-handling',
+] as const;
+export type ScenarioType = (typeof SCENARIO_TYPES)[number];
+
+export const AI_TAG = 'ai-generated';
+
 export const LIMITS = {
+  requirementMin: 20,
+  requirementMax: 20000,
+  maxGeneratedCases: 60,
+  maxBulkCreate: 100,
   title: 200,
   longText: 5000,
   stepText: 2000,

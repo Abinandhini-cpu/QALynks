@@ -47,6 +47,8 @@ describe('create', () => {
 
     await userEvent.type(screen.getByLabelText(/^Title/), '  Checkout works ');
     await userEvent.type(screen.getByLabelText('Description'), 'Desc');
+    await userEvent.type(screen.getByLabelText('Test data'), 'Card 4111');
+    await userEvent.type(screen.getByLabelText(/^Actual result/), 'Not run');
     await userEvent.type(screen.getByLabelText('Module or component'), 'Checkout');
     await userEvent.type(screen.getByLabelText('Tags'), 'smoke,payment{Enter}extra');
     await userEvent.click(screen.getByRole('button', { name: 'Add step' }));
@@ -62,8 +64,10 @@ describe('create', () => {
       title: 'Checkout works',
       description: 'Desc',
       preconditions: '',
+      testData: 'Card 4111',
       steps: [{ action: 'Pay', expectedResult: 'Paid' }],
       expectedResult: '',
+      actualResult: 'Not run',
       priority: 'Critical',
       testType: 'Integration',
       module: 'Checkout',

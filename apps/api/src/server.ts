@@ -1,3 +1,4 @@
+import { createProvider } from './ai/factory';
 import { buildApp } from './app';
 import { loadConfig } from './config';
 import { openDatabase } from './db/connection';
@@ -13,7 +14,19 @@ const config = loadConfig();
 const db = openDatabase(config.databasePath);
 runMigrations(db, config.migrationsDir);
 
-const app = buildApp({ db, logLevel: config.logLevel });
+const aiProvider = createProvider(config.ai, config.production);
+const app = buildApp({
+  db,
+  logLevel: config.logLevel,
+  aiProvider,
+  aiMaxRequestsPerMinute: config.ai.maxRequestsPerMinute,
+});
+
+app.log.info(
+  aiProvider
+    ? `AI generation enabled: provider=${aiProvider.name} model=${aiProvider.model}`
+    : 'AI generation disabled: no provider configured',
+);
 
 const shutdown = async () => {
   await app.close();

@@ -1,4 +1,4 @@
-import type { Priority, Status, TestType } from './constants';
+import type { Priority, ScenarioType, Status, TestType } from './constants';
 
 export interface TestStep {
   position: number;
@@ -11,8 +11,11 @@ export interface TestCase {
   title: string;
   description: string;
   preconditions: string;
+  testData: string;
   steps: TestStep[];
   expectedResult: string;
+  /** Filled in during execution. Blank for new test cases. */
+  actualResult: string;
   priority: Priority;
   testType: TestType;
   module: string;
@@ -77,4 +80,63 @@ export interface ApiErrorBody {
     message: string;
     fields?: Record<string, string>;
   };
+}
+
+export interface RequirementAnalysis {
+  summary: string;
+  features: string[];
+  businessRules: string[];
+  acceptanceCriteria: string[];
+  validations: string[];
+  dependencies: string[];
+  errorScenarios: string[];
+  ambiguities: string[];
+  missingInformation: string[];
+  contradictions: string[];
+  assumptions: string[];
+}
+
+/**
+ * A generated test case in the seven-column review format:
+ * TC ID (assigned on save), Module, Summary, Steps, Test Data,
+ * Expected Result and Actual Result (always blank). The remaining fields are
+ * review metadata, not columns.
+ */
+export interface GeneratedCase {
+  key: string;
+  module: string;
+  summary: string;
+  steps: string[];
+  testData: string;
+  expectedResult: string;
+  actualResult: string;
+  scenarioType: ScenarioType;
+  priority: Priority;
+  testType: TestType;
+  sourceReference: string;
+  flags: {
+    moduleNeedsReview: boolean;
+    expectedResultNeedsClarification: boolean;
+    clarificationNote: string;
+    possibleDuplicateOf: string[];
+  };
+}
+
+export interface GenerateResponse {
+  analysis: RequirementAnalysis;
+  testCases: GeneratedCase[];
+  provider: string;
+  model: string;
+}
+
+export interface AiStatus {
+  configured: boolean;
+  provider: string | null;
+  model: string | null;
+  /** True for the built-in test provider, which returns canned output and is not AI. */
+  mock: boolean;
+}
+
+export interface BulkCreateResponse {
+  created: { index: number; code: string }[];
 }

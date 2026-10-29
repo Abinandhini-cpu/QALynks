@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LIMITS, PRIORITIES, SORT_FIELDS, STATUSES, TEST_TYPES } from './constants';
+import { LIMITS, PRIORITIES, SCENARIO_TYPES, SORT_FIELDS, STATUSES, TEST_TYPES } from './constants';
 
 const text = (max: number) =>
   z
@@ -43,10 +43,12 @@ export const testCaseInputSchema = z.object({
     ),
   description: text(LIMITS.longText),
   preconditions: text(LIMITS.longText),
+  testData: text(LIMITS.longText).default(''),
   steps: z
     .array(stepSchema)
     .max(LIMITS.maxSteps, `A test case can have at most ${LIMITS.maxSteps} steps`),
   expectedResult: text(LIMITS.longText),
+  actualResult: text(LIMITS.longText).default(''),
   priority: z.enum(PRIORITIES, { error: 'Select a priority' }),
   testType: z.enum(TEST_TYPES, { error: 'Select a test type' }),
   module: text(LIMITS.module),
@@ -81,3 +83,69 @@ export const duplicateCheckSchema = z.object({
 export type DuplicateCheckInput = z.infer<typeof duplicateCheckSchema>;
 
 export const TEST_CASE_CODE_PATTERN = /^TC-\d{4,}$/;
+
+export const bulkCreateSchema = z.object({
+  testCases: z
+    .array(testCaseInputSchema)
+    .min(1, 'Select at least one test case')
+    .max(LIMITS.maxBulkCreate, `At most ${LIMITS.maxBulkCreate} test cases can be saved at once`),
+});
+
+export type BulkCreateInput = z.infer<typeof bulkCreateSchema>;
+
+export const generateRequestSchema = z.object({
+  requirement: z
+    .string()
+    .transform((v) => v.trim())
+    .pipe(
+      z
+        .string()
+        .min(
+          LIMITS.requirementMin,
+          `Enter at least ${LIMITS.requirementMin} characters of requirement text`,
+        )
+        .max(
+          LIMITS.requirementMax,
+          `Requirement text must be ${LIMITS.requirementMax} characters or fewer`,
+        ),
+    ),
+});
+
+/**
+ * Structure the AI model must return. Plain types only (no transforms) so it
+ * can be converted to a JSON Schema for provider tool or structured-output calls.
+ */
+export const aiAnalysisSchema = z.object({
+  summary: z.string(),
+  features: z.array(z.string()),
+  businessRules: z.array(z.string()),
+  acceptanceCriteria: z.array(z.string()),
+  validations: z.array(z.string()),
+  dependencies: z.array(z.string()),
+  errorScenarios: z.array(z.string()),
+  ambiguities: z.array(z.string()),
+  missingInformation: z.array(z.string()),
+  contradictions: z.array(z.string()),
+  assumptions: z.array(z.string()),
+});
+
+export const aiTestCaseSchema = z.object({
+  module: z.string(),
+  summary: z.string(),
+  steps: z.array(z.string()).min(1),
+  testData: z.string(),
+  expectedResult: z.string(),
+  scenarioType: z.enum(SCENARIO_TYPES),
+  priority: z.enum(PRIORITIES),
+  testType: z.enum(TEST_TYPES),
+  needsClarification: z.boolean(),
+  clarificationNote: z.string(),
+  sourceReference: z.string(),
+});
+
+export const aiResponseSchema = z.object({
+  analysis: aiAnalysisSchema,
+  testCases: z.array(aiTestCaseSchema).max(LIMITS.maxGeneratedCases),
+});
+
+export type AiResponse = z.infer<typeof aiResponseSchema>;

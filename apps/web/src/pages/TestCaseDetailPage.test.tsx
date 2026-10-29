@@ -26,6 +26,8 @@ describe('TestCaseDetailPage', () => {
     expect(steps[1]).not.toHaveTextContent('Expected');
     expect(screen.getByText('login')).toBeInTheDocument();
     expect(screen.getByText('Signed in')).toBeInTheDocument();
+    expect(screen.getByText('Email: user@example.test')).toBeInTheDocument();
+    expect(screen.getByText('Actual result')).toBeInTheDocument();
     expect(screen.getByText('Created')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
       'href',
@@ -40,7 +42,7 @@ describe('TestCaseDetailPage', () => {
     renderDetail();
     expect(await screen.findByText('No steps added')).toBeInTheDocument();
     expect(screen.getAllByText('None').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText('Not provided')).toBeInTheDocument();
+    expect(screen.getAllByText('Not provided').length).toBeGreaterThanOrEqual(1);
   });
 
   it('handles not found and load errors', async () => {

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodType } from 'zod';
 import {
+  bulkCreateSchema,
   duplicateCheckSchema,
   LIMITS,
   listQuerySchema,
@@ -60,6 +61,11 @@ export function registerTestCaseRoutes(app: FastifyInstance, service: TestCaseSe
   app.post('/api/test-cases/duplicates', async (req) => ({
     duplicates: service.checkDuplicates(parseWith(duplicateCheckSchema, req.body)),
   }));
+
+  app.post('/api/test-cases/bulk', async (req, reply) => {
+    const { testCases } = parseWith(bulkCreateSchema, req.body);
+    return reply.code(201).send(service.createMany(testCases));
+  });
 
   app.post('/api/test-cases', async (req, reply) => {
     const created = service.create(parseWith(testCaseInputSchema, req.body));
