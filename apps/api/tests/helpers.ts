@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { TestCaseInput } from '@qalynks/shared';
-import { buildApp } from '../src/app';
+import { buildApp, type AppOptions } from '../src/app';
 import { loadConfig } from '../src/config';
 import { openDatabase, type Db } from '../src/db/connection';
 import { runMigrations } from '../src/db/migrate';
@@ -11,11 +11,11 @@ export interface TestApp {
   setNow: (iso: string) => void;
 }
 
-export function createTestApp(): TestApp {
+export function createTestApp(options: Partial<AppOptions> = {}): TestApp {
   const db = openDatabase(':memory:');
   runMigrations(db, loadConfig().migrationsDir);
   let now = new Date('2026-01-01T00:00:00.000Z');
-  const app = buildApp({ db, clock: () => now });
+  const app = buildApp({ db, clock: () => now, ...options });
   return { app, db, setNow: (iso) => (now = new Date(iso)) };
 }
 
@@ -24,6 +24,8 @@ export function sample(overrides: Partial<TestCaseInput> = {}): TestCaseInput {
     title: 'Login with valid credentials',
     description: 'Happy path',
     preconditions: 'User exists',
+    testData: 'Email: user@example.test',
+    actualResult: '',
     steps: [
       { action: 'Open login page', expectedResult: 'Form shown' },
       { action: 'Submit credentials', expectedResult: '' },

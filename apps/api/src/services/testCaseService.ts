@@ -1,5 +1,6 @@
 import {
   normalizeText,
+  type BulkCreateResponse,
   type CreateTestCaseResponse,
   type DuplicateCheckInput,
   type DuplicateMatch,
@@ -32,6 +33,17 @@ export class TestCaseService {
     const duplicates = this.repo.findDuplicates(input.title, input.module);
     const testCase = this.repo.create(input, this.now());
     return { testCase, duplicates };
+  }
+
+  /** Creates every test case or none. IDs come from the same sequence as single creates. */
+  createMany(inputs: TestCaseInput[]): BulkCreateResponse {
+    const created = this.db.transaction(() =>
+      inputs.map((input, index) => ({
+        index,
+        code: this.repo.create(input, this.now()).code,
+      })),
+    )();
+    return { created };
   }
 
   get(code: string): TestCase {

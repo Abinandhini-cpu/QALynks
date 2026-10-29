@@ -115,6 +115,7 @@ export function TestCaseDetailPage() {
         <div className="card detail-main">
           <TextBlock label="Description" value={data.description} />
           <TextBlock label="Preconditions" value={data.preconditions} />
+          <TextBlock label="Test data" value={data.testData} />
           <section className="detail-section">
             <h2>Test steps</h2>
             {data.steps.length === 0 ? (
@@ -135,6 +136,7 @@ export function TestCaseDetailPage() {
             )}
           </section>
           <TextBlock label="Expected result" value={data.expectedResult} />
+          <TextBlock label="Actual result" value={data.actualResult} />
         </div>
 
         <aside className="card detail-meta" aria-label="Properties">

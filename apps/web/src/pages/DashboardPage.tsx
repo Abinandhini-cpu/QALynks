@@ -102,6 +102,9 @@ export function DashboardPage() {
             <Link className="btn btn-primary" to="/test-cases/new">
               New test case
             </Link>
+            <Link className="btn" to="/test-cases/generate">
+              Generate from requirement
+            </Link>
             <Link className="btn" to="/test-cases/import">
               Import CSV
             </Link>

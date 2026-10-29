@@ -24,7 +24,9 @@ interface TestCaseRow {
   title: string;
   description: string;
   preconditions: string;
+  test_data: string;
   expected_result: string;
+  actual_result: string;
   priority: Priority;
   test_type: TestType;
   module: string;
@@ -103,9 +105,10 @@ export class TestCaseRepository {
       const result = this.db
         .prepare(
           `INSERT INTO test_cases
-             (code, title, title_normalized, description, preconditions, expected_result,
-              priority, test_type, module, module_normalized, status, revision, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+             (code, title, title_normalized, description, preconditions, test_data, expected_result,
+              actual_result, priority, test_type, module, module_normalized, status, revision,
+              created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
         )
         .run(
           code,
@@ -113,7 +116,9 @@ export class TestCaseRepository {
           normalizeText(input.title),
           input.description,
           input.preconditions,
+          input.testData,
           input.expectedResult,
+          input.actualResult,
           input.priority,
           input.testType,
           input.module,
@@ -139,8 +144,9 @@ export class TestCaseRepository {
         .prepare(
           `UPDATE test_cases SET
              title = ?, title_normalized = ?, description = ?, preconditions = ?,
-             expected_result = ?, priority = ?, test_type = ?, module = ?,
-             module_normalized = ?, status = ?, revision = revision + 1, updated_at = ?
+             test_data = ?, expected_result = ?, actual_result = ?, priority = ?,
+             test_type = ?, module = ?, module_normalized = ?, status = ?,
+             revision = revision + 1, updated_at = ?
            WHERE id = ?`,
         )
         .run(
@@ -148,7 +154,9 @@ export class TestCaseRepository {
           normalizeText(input.title),
           input.description,
           input.preconditions,
+          input.testData,
           input.expectedResult,
+          input.actualResult,
           input.priority,
           input.testType,
           input.module,
@@ -342,6 +350,7 @@ export class TestCaseRepository {
           title: row.title,
           description: row.description,
           preconditions: row.preconditions,
+          testData: row.test_data,
           steps: steps
             .filter((s) => s.test_case_id === id)
             .map((s) => ({
@@ -350,6 +359,7 @@ export class TestCaseRepository {
               expectedResult: s.expected_result,
             })),
           expectedResult: row.expected_result,
+          actualResult: row.actual_result,
           priority: row.priority,
           testType: row.test_type,
           module: row.module,

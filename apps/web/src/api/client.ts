@@ -1,7 +1,10 @@
 import type {
+  AiStatus,
   ApiErrorBody,
+  BulkCreateResponse,
   CreateTestCaseResponse,
   DuplicateMatch,
+  GenerateResponse,
   ImportResult,
   SummaryResponse,
   TestCase,
@@ -86,6 +89,11 @@ export const api = {
     request<void>(`/api/test-cases/${encodeURIComponent(code)}`, { method: 'DELETE' }),
   checkDuplicates: (body: { title: string; module: string; excludeCode?: string }) =>
     request<{ duplicates: DuplicateMatch[] }>('/api/test-cases/duplicates', json('POST', body)),
+  createBulk: (testCases: TestCaseInput[]) =>
+    request<BulkCreateResponse>('/api/test-cases/bulk', json('POST', { testCases })),
+  aiStatus: () => request<AiStatus>('/api/ai/status'),
+  generate: (requirement: string) =>
+    request<GenerateResponse>('/api/ai/generate', json('POST', { requirement })),
   modules: () => request<{ modules: string[] }>('/api/modules'),
   summary: () => request<SummaryResponse>('/api/summary'),
   importCsv: (csv: string) =>

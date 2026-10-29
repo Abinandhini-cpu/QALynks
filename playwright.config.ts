@@ -25,7 +25,13 @@ export default defineConfig({
     {
       command: 'npm run db:reset -w @qalynks/api && npm run start -w @qalynks/api',
       url: `http://127.0.0.1:${API_PORT}/api/health`,
-      env: { PORT: String(API_PORT), DATABASE_PATH: 'data/e2e.db', LOG_LEVEL: 'silent' },
+      env: {
+        PORT: String(API_PORT),
+        DATABASE_PATH: 'data/e2e.db',
+        LOG_LEVEL: 'silent',
+        // Canned provider: verifies the review and save workflow without a live AI call.
+        AI_PROVIDER: 'mock',
+      },
       reuseExistingServer: false,
       timeout: 60_000,
     },

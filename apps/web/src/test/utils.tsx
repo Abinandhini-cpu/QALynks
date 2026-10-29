@@ -55,6 +55,8 @@ export const fullCase = (over: Partial<TestCase> = {}): TestCase => ({
   title: 'Login works',
   description: 'Happy path',
   preconditions: 'User exists',
+  testData: 'Email: user@example.test',
+  actualResult: '',
   steps: [
     { position: 1, action: 'Open page', expectedResult: 'Form shown' },
     { position: 2, action: 'Submit', expectedResult: '' },

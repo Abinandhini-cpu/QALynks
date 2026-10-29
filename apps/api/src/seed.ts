@@ -1,9 +1,10 @@
-import type { TestCaseInput } from '@qalynks/shared';
+import type { z } from 'zod';
+import { testCaseInputSchema, type TestCaseInput } from '@qalynks/shared';
 import type { TestCaseService } from './services/testCaseService';
 
 const step = (action: string, expectedResult = '') => ({ action, expectedResult });
 
-export const SAMPLE_TEST_CASES: TestCaseInput[] = [
+const DRAFTS: z.input<typeof testCaseInputSchema>[] = [
   {
     title: 'Login with valid credentials',
     description: 'A registered user signs in with a correct email and password.',
@@ -162,3 +163,7 @@ export function seedSampleData(service: TestCaseService): number {
   for (const sample of SAMPLE_TEST_CASES) service.create(sample);
   return SAMPLE_TEST_CASES.length;
 }
+
+export const SAMPLE_TEST_CASES: TestCaseInput[] = DRAFTS.map((draft) =>
+  testCaseInputSchema.parse(draft),
+);

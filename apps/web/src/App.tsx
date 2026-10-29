@@ -2,6 +2,7 @@ import { Link, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { PageHeader } from './components/PageHeader';
 import { DashboardPage } from './pages/DashboardPage';
+import { GeneratePage } from './pages/GeneratePage';
 import { ImportPage } from './pages/ImportPage';
 import { TestCaseDetailPage } from './pages/TestCaseDetailPage';
 import { TestCaseFormPage } from './pages/TestCaseFormPage';
@@ -32,6 +33,7 @@ export function App() {
         <Route path="test-cases" element={<TestCaseListPage />} />
         <Route path="test-cases/new" element={<TestCaseFormPage mode="create" />} />
         <Route path="test-cases/import" element={<ImportPage />} />
+        <Route path="test-cases/generate" element={<GeneratePage />} />
         <Route path="test-cases/:code" element={<TestCaseDetailPage />} />
         <Route path="test-cases/:code/edit" element={<TestCaseFormPage mode="edit" />} />
         <Route path="*" element={<NotFoundPage />} />

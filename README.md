@@ -2,7 +2,7 @@
 
 QA management platform. Module 1, Test Case Management, is implemented. Requirements, Bug Management, Test Execution, Reports and Settings appear in the sidebar as planned items only.
 
-There is no AI functionality in this version. The code is structured so an AI module can be added later (see [Extending](#extending)).
+Module 2 adds AI test case generation from pasted requirement text (see [AI test case generation](#ai-test-case-generation)). It needs an API key. Manual test case management works without one.
 
 ## Stack
 
@@ -83,6 +83,7 @@ To run end-to-end tests in Chrome instead of Edge: `E2E_BROWSER_CHANNEL=chrome n
 - Server-generated IDs (`TC-0001`, `TC-0002`, and so on) from a database sequence. IDs are never reused.
 - Duplicate warning on save when a normalised title already exists.
 - CSV import and export.
+- AI test case generation from requirement text, with review before saving.
 
 ## Decisions
 
@@ -136,17 +137,83 @@ Behaviour:
 
 The import page has a downloadable template.
 
+The CSV format does not yet include the newer `test_data` and `actual_result` fields. Exports omit them, and imports leave them blank.
+
 ## API summary
 
 | Method and path                                   | Purpose                                                                           |
 | ------------------------------------------------- | --------------------------------------------------------------------------------- |
 | `GET /api/test-cases`                             | List. Query: `q, priority, testType, status, module, sort, order, page, pageSize` |
 | `POST /api/test-cases`                            | Create. Returns the record and any possible duplicates                            |
+| `POST /api/test-cases/bulk`                       | Create several test cases, all or nothing                                         |
+| `GET /api/ai/status`, `POST /api/ai/generate`     | AI configuration status; analyse a requirement and return cases without saving    |
 | `GET/PUT/DELETE /api/test-cases/:code`            | Read, replace, soft delete                                                        |
 | `POST /api/test-cases/duplicates`                 | Check a title and module                                                          |
 | `GET /api/test-cases/export.csv`                  | Export with the same filters as the list                                          |
 | `POST /api/test-cases/import`                     | Import. Body is the CSV text, `Content-Type: text/csv`                            |
 | `GET /api/summary`, `/api/modules`, `/api/health` | Dashboard data, module names, health check                                        |
+
+## AI test case generation
+
+Open **Test Cases, Generate from requirement** (`/test-cases/generate`). Paste requirement text (user stories, acceptance criteria, BRD or functional requirements). Plain text only: there is no file, PDF or DOCX upload yet.
+
+One submission runs the whole workflow with no approval step in between:
+
+1. The server sends the text to the configured AI model, which analyses the requirement (features, business rules, acceptance criteria, validations, dependencies, error scenarios) and lists ambiguities, missing information, contradictions and assumptions.
+2. The same call returns the test cases (positive, negative, boundary, edge, validation, business-rule and error-handling scenarios where the requirement supports them).
+3. The page shows the analysis next to the generated cases. You tick the cases to keep, edit or remove the rest, and save. **Nothing is saved until you approve it, and no case is selected by default.**
+
+### The seven columns
+
+| Column          | Source and mapping to the existing model                                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TC ID           | `code`. Assigned by the existing database sequence when you save (`TC-0001`...). Shown as "Assigned on save" during review, because reserving IDs for unsaved cases would leave gaps. |
+| Module          | `module`. Left empty and flagged "Module needs review" when the requirement does not name one.                                                                                        |
+| Summary         | `title`                                                                                                                                                                               |
+| Steps           | Ordered `steps` (one action per step)                                                                                                                                                 |
+| Test Data       | `testData` (new field). Unspecified values are marked `[Not specified: ...]`, never invented.                                                                                         |
+| Expected Result | `expectedResult`. Cases whose expected result the requirement does not define are flagged for clarification.                                                                          |
+| Actual Result   | `actualResult` (new field). Always blank for generated cases.                                                                                                                         |
+
+The table shows exactly these seven columns in this order. Controls (approve checkbox, Edit, Remove) sit inside the cells. Scenario type, priority, test type, source reference and flags appear as badges under the summary. They are review metadata, not columns.
+
+Saved cases use the normal model and the normal bulk create (`POST /api/test-cases/bulk`, all or nothing). They are saved with status `Draft`, the tags `ai-generated` and the scenario type, and a description that records the source and any open clarification. They then work with the existing list, search, edit, export and delete.
+
+### Data model change
+
+Migration `002_test_data_actual_result.sql` adds `test_data` and `actual_result` to `test_cases`, both `NOT NULL DEFAULT ''`. Existing rows get empty values, and manual create and edit accept the fields as optional. Nothing else changed.
+
+### Configuration
+
+Set these in `.env` (never commit it) or the server environment, then restart the API:
+
+| Variable                     | Default                       | Purpose                                                               |
+| ---------------------------- | ----------------------------- | --------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`          | none                          | Required for generation. Server-side only; never sent to the browser. |
+| `AI_MODEL`                   | `claude-sonnet-5-5`           | Model ID                                                              |
+| `AI_TIMEOUT_MS`              | `120000`                      | Provider call timeout                                                 |
+| `AI_MAX_REQUESTS_PER_MINUTE` | `10`                          | Local cap on generation requests, to limit spend                      |
+| `ANTHROPIC_BASE_URL`         | `https://api.anthropic.com`   | Override for a proxy or gateway                                       |
+| `AI_PROVIDER`                | `anthropic` when a key is set | `anthropic`, or `mock` for tests only                                 |
+
+Without a key the page explains that AI is not configured and disables the form. Everything else works as before. The requirement text is sent to the AI provider, so do not paste confidential material unless your provider terms allow it.
+
+### How it is built
+
+- `apps/api/src/ai/provider.ts`: the `LlmProvider` interface. `anthropic.ts` implements it with the Anthropic Messages API and a forced tool call for structured output. To add another vendor, implement the interface and register it in `factory.ts`.
+- `generator.ts` validates the model output against a Zod schema before anything is shown or saved. It trims and de-duplicates cases, forces Actual Result to blank, marks missing test data, flags unclear modules and expected results, and flags cases that resemble existing ones.
+- The requirement is sent inside delimiters, and the prompt tells the model to treat it as data and never to invent business rules.
+- Failures map to clear API errors: not configured (503), rate limited (429 with `Retry-After`), timeout (504), provider error (502), invalid response (502). Provider detail and keys stay in server logs only.
+
+### Testing without a paid API
+
+All automated tests mock the provider, so no key or network call is needed. `AI_PROVIDER=mock` selects a built-in provider that returns fixed sample cases. It is used by the browser tests, is labelled "Test provider active" in the UI, and the server refuses it when `NODE_ENV=production`. It is not AI.
+
+**Live generation has not been exercised in this repository.** Set a real key and try it with your own requirement before relying on it.
+
+### Limits
+
+Requirement text: 20 to 20,000 characters. At most 60 generated cases per request, and 100 cases per save. Generated cases that have not been saved are lost if you leave the page.
 
 ## Manual verification
 
@@ -164,7 +231,7 @@ Start the app with `npm run dev`, then open http://127.0.0.1:5173.
 
 ## Extending
 
-- **AI generation (later).** Add `apps/api/src/modules/ai` with a provider interface, for example `LlmProvider.generate(prompt, schema)`, and adapters per vendor chosen by configuration. Generated cases should be inserted as `Draft` through the existing `TestCaseService.create`, so human review and the duplicate check apply. Core features do not depend on the module.
+- **More AI input and providers.** File, PDF and DOCX input would extract text and then call the same `AiGenerationService.generate`. Another vendor is one class implementing `LlmProvider` plus a case in `factory.ts`.
 - **Requirements and traceability.** Add `requirements` and `requirement_test_cases` tables with a new migration. Reference test cases by `id`.
 - **Version history.** Add a `test_case_versions` table written inside `TestCaseRepository.update`.
 - **Authentication.** Register an auth hook in `apps/api/src/app.ts` before the routes.
